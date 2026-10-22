@@ -1,0 +1,39 @@
+
+erDiagram
+    DONORS ||--o{ DONATIONS : registers
+    DONATIONS ||--o| CLAIMS : has
+    CLINICS ||--o{ CLAIMS : makes
+
+    DONORS {
+        int id PK
+        varchar name
+        varchar email UK
+    }
+
+    DONATIONS {
+        int id PK
+        int donor_id FK
+        varchar drug_name
+        varchar serial_number
+        date expiration_date
+        int quantity
+        boolean sealed
+        varchar status
+    }
+
+    CLINICS {
+        int id PK
+        varchar name
+        varchar address
+        varchar email UK
+        boolean is_verified
+    }
+
+    CLAIMS {
+        int id PK
+        int donation_id FK,UK
+        int clinic_id FK
+        timestamp claimed_at
+        varchar status
+    }
+
