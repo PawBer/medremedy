@@ -1,0 +1,16 @@
+{
+  "name": "medremedy",
+  "version": "1.0.0",
+  "description": "Med Remedy - Prescription Drug Waste Redirection API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
