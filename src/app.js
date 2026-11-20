@@ -78,8 +78,4 @@ app.delete('/donations/:id', authorize('admin', 'donor'), (req, res) => {
   res.status(204).end();
 });
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
 module.exports = app;
