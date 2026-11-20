@@ -54,7 +54,7 @@ Disposing of unused, sealed prescription medications creates avoidable waste. Do
    npm test
    ```
 
-Follow the [local demo guide](documentation/DEMO.md) for sample accounts, a complete request sequence, and instructions for moving the demo database to another computer.
+Follow the [local demo guide](documentation/DEMO.md) to start with the included sample database, configure the demo accounts, and try the full donation workflow.
 
 ## API Reference Guide
 

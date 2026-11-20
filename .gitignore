@@ -180,6 +180,7 @@ dist
 /data/
 *.sqlite
 *.sqlite-*
+!/documentation/demo.sqlite
 
 # End of https://www.toptal.com/developers/gitignore/api/node,macos
 
