@@ -1,6 +1,10 @@
 const assert = require('node:assert/strict');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const { once } = require('node:events');
+const { copyFile, mkdtemp, rm } = require('node:fs/promises');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
 const { after, before, test } = require('node:test');
 
 const users = [
@@ -22,6 +26,7 @@ let baseUrl;
 
 before(async () => {
   process.env.MEDREMEDY_USERS = JSON.stringify(users);
+  process.env.MEDREMEDY_DB_PATH = ':memory:';
   const app = require('../src/app');
   server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -34,12 +39,12 @@ after(async () => {
   }
 });
 
-function request(method, path, token, body) {
+function request(method, path, token, body, url = baseUrl) {
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body) headers['Content-Type'] = 'application/json';
 
-  return fetch(`${baseUrl}${path}`, { method, headers, body: JSON.stringify(body) });
+  return fetch(`${url}${path}`, { method, headers, body: JSON.stringify(body) });
 }
 
 function register(token, expiration_date = '2099-12-31', fields = {}) {
@@ -170,4 +175,69 @@ test('a donor can remove their own listing and an admin can remove another donor
   const secondRegistration = await register('donor-two');
   const secondDonation = await secondRegistration.json();
   assert.equal((await request('DELETE', `/donations/${secondDonation.id}`, 'admin-one')).status, 204);
+});
+
+async function withServer(databasePath, run) {
+  const child = spawn(process.execPath, [require.resolve('../src/server')], {
+    env: { ...process.env, MEDREMEDY_DB_PATH: databasePath, PORT: '0' },
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
+  const closed = once(child, 'close');
+  try {
+    const signal = AbortSignal.timeout(5000);
+    const port = await Promise.race([
+      once(child.stdout, 'data', { signal }).then(([data]) => /port (\d+)/.exec(data.toString())?.[1]),
+      closed.then(([code]) => { throw new Error(`Server exited during startup (${code}).`); }),
+    ]);
+    assert.ok(port, 'Server reports its listening port');
+    await run(`http://127.0.0.1:${port}`);
+  } finally {
+    child.kill();
+    await closed;
+  }
+}
+
+test('a copied SQLite file retains donations and claims, and deletion cascades to claims', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'medremedy-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const original = join(directory, 'original.sqlite');
+  const copy = join(directory, 'copy.sqlite');
+  const medication = { drug_name: 'Demo medication', serial_number: 'DEMO1', expiration_date: '2099-12-31' };
+  let reserved;
+  let available;
+
+  await withServer(original, async url => {
+    const registration = await request('POST', '/donations/register', 'donor-one', medication, url);
+    assert.equal(registration.status, 201);
+    const donation = await registration.json();
+    const claim = await request('PUT', `/clinics/claim/${donation.id}`, 'clinic-one', undefined, url);
+    assert.equal(claim.status, 200);
+    reserved = await claim.json();
+
+    const second = await request('POST', '/donations/register', 'donor-two', medication, url);
+    assert.equal(second.status, 201);
+    available = await second.json();
+  });
+
+  await copyFile(original, copy);
+  await withServer(copy, async url => {
+    const list = await request('GET', '/donations/available', 'clinic-one', undefined, url);
+    assert.deepEqual(await list.json(), [available]);
+    const path = `/clinics/claim/${reserved.id}`;
+    const retry = await request('PUT', path, 'clinic-one', undefined, url);
+    assert.equal(retry.status, 200);
+    assert.deepEqual(await retry.json(), reserved);
+    assert.equal((await request('PUT', path, 'clinic-two', undefined, url)).status, 409);
+    assert.equal((await request('DELETE', `/donations/${reserved.id}`, 'donor-one', undefined, url)).status, 204);
+  });
+
+  const database = new DatabaseSync(copy, { readOnly: true });
+  try {
+    assert.equal(database.prepare('SELECT name FROM donors WHERE id = 1').get().name, 'First donor');
+    assert.equal(database.prepare('SELECT is_verified FROM clinics WHERE id = 1').get().is_verified, 1);
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM claims').get().count, 0);
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally {
+    database.close();
+  }
 });

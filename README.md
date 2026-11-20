@@ -1,6 +1,6 @@
 # Med Remedy
 
-Run `npm install`, configure users, then run `npm start`
+Use Node.js 24 or later. Run `npm ci`, configure users, then run `npm start`
 (http://localhost:3000). Run the API tests with `npm test`.
 
 ## Configure users
@@ -80,6 +80,20 @@ claim, if one exists. A successful deletion returns
 `204 No Content`. An unknown ID returns `404 Not Found`, and a donor deleting
 someone else's listing receives `403 Forbidden`.
 
-The [data model](documentation/schema.mermaid) is stored in memory. Donors and
-clinics are loaded from configuration at startup. Donations and claims are
-cleared on restart.
+## SQLite storage and moving the demo
+
+The API creates the four tables from the [data model](documentation/schema.mermaid)
+in `data/medremedy.sqlite` on first startup. Set `MEDREMEDY_DB_PATH` to use a
+different file. Donor and clinic profiles are created or updated by ID from
+`MEDREMEDY_USERS` at startup. Keep those IDs tied to the same people and clinics.
+Removing an account from the configuration revokes its access and preserves its
+profile and history. Bearer tokens and admin accounts stay in the configuration.
+
+1. Stop the API and copy the project and `data/medremedy.sqlite` to the destination
+   computer. If you set a custom database path, copy that file and set the path again.
+2. Install Node.js 24 or later and run `npm ci` in the project directory.
+3. Set `MEDREMEDY_USERS` with the same donor and clinic IDs, then run `npm start`.
+
+Use the README's sample profiles and tokens for a local demo. The local database
+file is ignored by Git and must be transferred separately. No separate database
+service is required.

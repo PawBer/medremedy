@@ -1,17 +1,18 @@
 const express = require('express');
 const authorize = require('./middlewares/authorize');
+const donations = require('./models/donations');
 
 const app = express();
 
 app.use(express.json());
 
-const donations = new Map();
-const claimsByDonationId = new Map();
-let nextDonationId = 1;
-let nextClaimId = 1;
-
 function todayUtc() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function donationId(value) {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 && String(id) === value ? id : null;
 }
 
 app.post('/donations/register', authorize('donor'), (req, res) => {
@@ -41,68 +42,39 @@ app.post('/donations/register', authorize('donor'), (req, res) => {
     return res.status(400).json({ error: 'quantity must be a positive 32-bit integer.' });
   }
 
-  const donation = {
-    id: nextDonationId++,
-    donor_id: req.user.id,
-    drug_name: drug_name.trim(),
-    serial_number: serial_number.trim(),
+  const donation = donations.register(
+    req.user.id,
+    drug_name.trim(),
+    serial_number.trim(),
     expiration_date,
     quantity,
-    sealed: true,
-    status: 'available',
-  };
-
-  donations.set(String(donation.id), donation);
+  );
   res.status(201).json(donation);
 });
 
 app.get('/donations/available', authorize('clinic'), (req, res) => {
-  const today = todayUtc();
-  const available = Array.from(donations.values())
-    .filter(donation => donation.status === 'available' && donation.expiration_date >= today);
-
-  res.status(200).json(available);
+  res.status(200).json(donations.listAvailable(todayUtc()));
 });
 
 app.put('/clinics/claim/:id', authorize('clinic'), (req, res) => {
-  const donation = donations.get(req.params.id);
-  if (!donation) {
+  const result = donations.claim(donationId(req.params.id), req.user.id, new Date().toISOString());
+  if (result.error === 'not-found') {
     return res.status(404).json({ error: 'Donation not found.' });
   }
-
-  const existingClaim = claimsByDonationId.get(donation.id);
-  if (existingClaim?.clinic_id === req.user.id) {
-    return res.status(200).json({ ...donation, claim: existingClaim });
-  }
-
-  if (existingClaim || donation.expiration_date < todayUtc()) {
+  if (result.error === 'unavailable') {
     return res.status(409).json({ error: 'Donation is no longer available.' });
   }
-
-  const claim = {
-    id: nextClaimId++,
-    donation_id: donation.id,
-    clinic_id: req.user.id,
-    claimed_at: new Date().toISOString(),
-    status: 'claimed',
-  };
-  claimsByDonationId.set(donation.id, claim);
-  donation.status = 'claimed';
-  res.status(200).json({ ...donation, claim });
+  res.status(200).json(result.donation);
 });
 
 app.delete('/donations/:id', authorize('admin', 'donor'), (req, res) => {
-  const donation = donations.get(req.params.id);
-  if (!donation) {
+  const error = donations.remove(donationId(req.params.id), req.user);
+  if (error === 'not-found') {
     return res.status(404).json({ error: 'Donation not found.' });
   }
-
-  if (req.user.role === 'donor' && donation.donor_id !== req.user.id) {
+  if (error === 'forbidden') {
     return res.status(403).json({ error: 'You can only delete your own donations.' });
   }
-
-  claimsByDonationId.delete(donation.id);
-  donations.delete(req.params.id);
   res.status(204).end();
 });
 
