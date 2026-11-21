@@ -17,6 +17,8 @@ Disposing of unused, sealed prescription medications creates avoidable waste. Do
 
 ## Installation & Setup
 
+For the presentation, run `npm ci` once and then use `npm run demo` to start with the sample database and test accounts. See the [local demo guide](documentation/DEMO.md) for the Postman walkthrough.
+
 1. **Clone** the repository and enter the project directory.
 
    ```bash
@@ -55,8 +57,6 @@ Disposing of unused, sealed prescription medications creates avoidable waste. Do
    ```bash
    npm test
    ```
-
-Follow the [local demo guide](documentation/DEMO.md) to start with the included sample database, configure the demo accounts, and try the full donation workflow.
 
 ### Changing profile emails
 

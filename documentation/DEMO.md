@@ -2,43 +2,15 @@
 
 ## Start the API
 
-Install Node.js 24 or later and run `npm ci` in the project directory. Then run the commands for your operating system from that same directory. On first run, they copy the included sample database to `data/medremedy-demo.sqlite`.
-
-### Windows (PowerShell)
-
-```powershell
-$env:MEDREMEDY_DB_PATH = 'data/medremedy-demo.sqlite'
-if (-not (Test-Path $env:MEDREMEDY_DB_PATH)) {
-  New-Item -ItemType Directory -Path data -Force | Out-Null
-  Copy-Item documentation/demo.sqlite $env:MEDREMEDY_DB_PATH
-}
-
-$env:MEDREMEDY_USERS = @'
-[
-  {"id":1,"role":"donor","token":"local-donor","name":"Example donor","email":"donor@example.com"},
-  {"id":1,"role":"clinic","token":"local-clinic","name":"Example clinic","address":"1 Example Street","email":"clinic@example.com","is_verified":true},
-  {"id":"admin-1","role":"admin","token":"local-admin"}
-]
-'@
-npm start
-```
-
-### Linux (Bash)
+Install Node.js 24 or later and run `npm ci` once in the project directory. Then start the demo from that directory on Windows, macOS, or Linux.
 
 ```bash
-export MEDREMEDY_DB_PATH='data/medremedy-demo.sqlite'
-mkdir -p data
-if [ ! -f "$MEDREMEDY_DB_PATH" ]; then
-  cp documentation/demo.sqlite "$MEDREMEDY_DB_PATH"
-fi
-
-export MEDREMEDY_USERS='[
-  {"id":1,"role":"donor","token":"local-donor","name":"Example donor","email":"donor@example.com"},
-  {"id":1,"role":"clinic","token":"local-clinic","name":"Example clinic","address":"1 Example Street","email":"clinic@example.com","is_verified":true},
-  {"id":"admin-1","role":"admin","token":"local-admin"}
-]'
-npm start
+npm run demo
 ```
+
+If PowerShell blocks `npm.ps1`, run `npm.cmd run demo`.
+
+The demo starts at `http://127.0.0.1:3000` by default with the donor, clinic, and administrator test accounts ready to use. On first run it copies the sample database to `data/medremedy-demo.sqlite`. Later runs reuse that file and keep your donations and claims. Press `Ctrl+C` to stop the server.
 
 ## Try the API in Postman
 
