@@ -46,7 +46,9 @@ Disposing of unused, sealed prescription medications creates avoidable waste. Do
    npm start
    ```
 
-   Open `http://localhost:3000` with the default configuration. Set `PORT` to change the port. The API creates the SQLite tables automatically at startup in `data/medremedy.sqlite`. Set `MEDREMEDY_DB_PATH` to use a different file. The API inserts or updates donor and clinic profiles by ID at startup and stores their donation history in SQLite. Removing an account from `MEDREMEDY_USERS` revokes access and preserves its stored profile and history. Bearer tokens and admin accounts stay in the environment configuration. See the [data model](documentation/schema.mermaid).
+   The default base URL is `http://localhost:3000`. To check that the server is running, send `GET /donations/available` with your clinic's bearer token. Expect `200 OK` and a JSON array. An empty array is normal on a fresh database. Set `PORT` to change the port.
+
+   The API creates the SQLite tables automatically at startup in `data/medremedy.sqlite`. Set `MEDREMEDY_DB_PATH` to use a different file. The API inserts or updates donor and clinic profiles by ID at startup and stores their donation history in SQLite. Removing an account from `MEDREMEDY_USERS` revokes access and preserves its stored profile and history. Bearer tokens and admin accounts stay in the environment configuration. See the [data model](documentation/schema.mermaid).
 
 5. **Run** the automated API tests.
 
@@ -56,9 +58,15 @@ Disposing of unused, sealed prescription medications creates avoidable waste. Do
 
 Follow the [local demo guide](documentation/DEMO.md) to start with the included sample database, configure the demo accounts, and try the full donation workflow.
 
+### Changing profile emails
+
+You can change a donor's email to an address unused by any stored donor. The same rule applies separately to clinics. Suppose donor 1 has `a@example.com` and donor 2 has `b@example.com`. If you swap both addresses in the configuration and restart, SQLite rejects the first update because the other donor still holds the requested address. Startup stops and the transaction rolls back, so both profiles keep their original addresses.
+
+To swap them, keep both IDs and make three changes, restarting successfully after each one. First give donor 1 an unused temporary address. Then give donor 2 `a@example.com`. Finally give donor 1 `b@example.com`. Removing an account from the configuration keeps its stored profile, so its email stays reserved.
+
 ## API Reference Guide
 
-Send `Authorization: Bearer <token>` with each donation or claim request. Use `Content-Type: application/json` when sending a JSON body. The donation and claim handlers use JSON for response bodies. `204 No Content` has an empty body. The public `GET /` returns a plain-text greeting.
+Send `Authorization: Bearer <token>` with each donation or claim request. Use `Content-Type: application/json` when sending a JSON body. The donation and claim handlers use JSON for response bodies. `204 No Content` has an empty body.
 
 | HTTP method | URL path | Role | Required JSON payload keys | Success status | Purpose |
 | --- | --- | --- | --- | --- | --- |
