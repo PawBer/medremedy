@@ -1,0 +1,561 @@
+{
+  "info": {
+    "name": "Med Remedy API",
+    "description": "Simple Postman collection testing the Med Remedy donation, claiming, deletion, and auth/validation workflows. Configured by default to work with the local demo accounts in documentation/DEMO.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "donorToken",
+      "value": "local-donor"
+    },
+    {
+      "key": "clinicToken",
+      "value": "local-clinic"
+    },
+    {
+      "key": "adminToken",
+      "value": "local-admin"
+    },
+    {
+      "key": "donationId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Donation & Claim Workflow",
+      "item": [
+        {
+          "name": "Register Donation (Donor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Donation is available and sealed', function () {",
+                  "    pm.expect(body.id).to.be.a('number');",
+                  "    pm.expect(body.status).to.eql('available');",
+                  "    pm.expect(body.sealed).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('donationId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{donorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"drug_name\": \"Example medication\",\n  \"serial_number\": \"ABC123\",\n  \"expiration_date\": \"2099-12-31\",\n  \"quantity\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "register"]
+            }
+          }
+        },
+        {
+          "name": "List Available Donations (Clinic)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const list = pm.response.json();",
+                  "const donationId = Number(pm.collectionVariables.get('donationId'));",
+                  "pm.test('Registered donation appears in available list', function () {",
+                  "    pm.expect(list).to.be.an('array');",
+                  "    pm.expect(list.some(item => item.id === donationId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clinicToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "available"]
+            }
+          }
+        },
+        {
+          "name": "Claim Donation (Clinic)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const donationId = Number(pm.collectionVariables.get('donationId'));",
+                  "pm.test('Donation is claimed with claim details', function () {",
+                  "    pm.expect(body.status).to.eql('claimed');",
+                  "    pm.expect(body.claim).to.be.an('object');",
+                  "    pm.expect(body.claim.donation_id).to.eql(donationId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clinicToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clinics/claim/{{donationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["clinics", "claim", "{{donationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Repeat Claim Same Clinic (Idempotent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Returns existing claimed donation', function () {",
+                  "    pm.expect(body.status).to.eql('claimed');",
+                  "    pm.expect(body.claim.status).to.eql('claimed');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clinicToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clinics/claim/{{donationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["clinics", "claim", "{{donationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Verify Claimed Donation Removed from Available",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const list = pm.response.json();",
+                  "const donationId = Number(pm.collectionVariables.get('donationId'));",
+                  "pm.test('Claimed donation is no longer in available list', function () {",
+                  "    pm.expect(list.some(item => item.id === donationId)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clinicToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "available"]
+            }
+          }
+        },
+        {
+          "name": "Delete Own Donation (Donor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{donorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/{{donationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "{{donationId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin Deletion Workflow",
+      "item": [
+        {
+          "name": "Register Donation for Admin Delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('donationId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{donorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"drug_name\": \"Admin test medication\",\n  \"serial_number\": \"ADM001\",\n  \"expiration_date\": \"2099-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "register"]
+            }
+          }
+        },
+        {
+          "name": "Delete Any Donation (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/{{donationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "{{donationId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Auth & Validation Checks",
+      "item": [
+        {
+          "name": "Missing Token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/donations/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "available"]
+            }
+          }
+        },
+        {
+          "name": "Clinic Cannot Register Donation (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clinicToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"drug_name\": \"Example medication\",\n  \"serial_number\": \"ABC123\",\n  \"expiration_date\": \"2099-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "register"]
+            }
+          }
+        },
+        {
+          "name": "Donor Cannot List Available Donations (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{donorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "available"]
+            }
+          }
+        },
+        {
+          "name": "Reject Expired Medication (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error message is returned', function () {",
+                  "    pm.expect(pm.response.json().error).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{donorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"drug_name\": \"Expired medication\",\n  \"serial_number\": \"EXP001\",\n  \"expiration_date\": \"2020-01-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["donations", "register"]
+            }
+          }
+        },
+        {
+          "name": "Claim Nonexistent Donation (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clinicToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clinics/claim/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["clinics", "claim", "999999"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
