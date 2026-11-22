@@ -46,7 +46,7 @@ Disposing of unused, sealed prescription medications creates avoidable waste. Do
    npm start
    ```
 
-   Open `http://localhost:3000` with the default configuration. Set `PORT` to change the port. The API creates the SQLite tables automatically at startup in `data/medremedy.sqlite`. Set `MEDREMEDY_DB_PATH` to use a different file. The API inserts or updates donor and clinic profiles by ID at startup and stores their donation history in SQLite. Removing an account from `MEDREMEDY_USERS` revokes access and preserves its stored profile and history. Bearer tokens and admin accounts stay in the environment configuration. See the [data model](documentation/schema.mermaid).
+   The API listens on `http://localhost:3000` with the default configuration. Set `PORT` to change the port. The API creates the SQLite tables automatically at startup in `data/medremedy.sqlite`. Set `MEDREMEDY_DB_PATH` to use a different file. The API inserts or updates donor and clinic profiles by ID at startup and stores their donation history in SQLite. Removing an account from `MEDREMEDY_USERS` revokes access and preserves its stored profile and history. Bearer tokens and admin accounts stay in the environment configuration. See the [data model](documentation/schema.mermaid).
 
 5. **Run** the automated API tests.
 
@@ -54,11 +54,11 @@ Disposing of unused, sealed prescription medications creates avoidable waste. Do
    npm test
    ```
 
-Follow the [local demo guide](documentation/DEMO.md) to start with the included sample database, configure the demo accounts, and try the full donation workflow.
+Follow the [local demo guide](documentation/DEMO.md) to start with the included sample database, configure the demo accounts, and try the full donation workflow, or import the [Postman collection](documentation/medremedy.postman_collection.json). See the [endpoint checklist](documentation/endpoint-checklist.md) for a quick method and role matrix.
 
 ## API Reference Guide
 
-Send `Authorization: Bearer <token>` with each donation or claim request. Use `Content-Type: application/json` when sending a JSON body. The donation and claim handlers use JSON for response bodies. `204 No Content` has an empty body. The public `GET /` returns a plain-text greeting.
+Send `Authorization: Bearer <token>` with each request. Use `Content-Type: application/json` when sending a JSON body. Endpoints with response bodies return JSON; `204 No Content` has an empty body.
 
 | HTTP method | URL path | Role | Required JSON payload keys | Success status | Purpose |
 | --- | --- | --- | --- | --- | --- |

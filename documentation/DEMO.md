@@ -23,7 +23,7 @@ $env:MEDREMEDY_USERS = @'
 npm start
 ```
 
-### Linux (Bash)
+### Linux / macOS (Bash / Zsh)
 
 ```bash
 export MEDREMEDY_DB_PATH='data/medremedy-demo.sqlite'
@@ -42,7 +42,7 @@ npm start
 
 ## Try the API in Postman
 
-Leave the server running and use `http://localhost:3000` before each path below. In each request, open **Authorization**, select **Bearer Token**, and paste the token from the table. These tokens are for local testing.
+Leave the server running and use `http://localhost:3000` as the base URL. You can import [medremedy.postman_collection.json](medremedy.postman_collection.json) into Postman (already preconfigured with the demo tokens below) to run the full workflows and auth/validation checks, or send the requests manually as shown below. For manual requests, open **Authorization**, select **Bearer Token**, and paste the token from the table. These tokens are for local testing.
 
 | Method and path | Token | Body | Expected result |
 | --- | --- | --- | --- |

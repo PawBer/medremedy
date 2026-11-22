@@ -60,8 +60,13 @@ test('only donors can register and only clinics can list or claim donations', as
   assert.equal((await register()).status, 401);
   assert.equal((await register('invalid-token')).status, 401);
   assert.equal((await register('clinic-one')).status, 403);
+  assert.equal((await register('admin-one')).status, 403);
   assert.equal((await request('GET', '/donations/available', 'donor-one')).status, 403);
+  assert.equal((await request('GET', '/donations/available', 'admin-one')).status, 403);
   assert.equal((await request('PUT', '/clinics/claim/1', 'donor-one')).status, 403);
+  assert.equal((await request('PUT', '/clinics/claim/1', 'admin-one')).status, 403);
+  assert.equal((await request('PUT', '/clinics/claim/abc', 'clinic-one')).status, 404);
+  assert.equal((await request('DELETE', '/donations/abc', 'admin-one')).status, 404);
 });
 
 test('a donation can be claimed by one clinic and disappears from the available list', async t => {
