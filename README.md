@@ -66,7 +66,7 @@ To swap them, keep both IDs and make three changes, restarting successfully afte
 
 ## API Reference Guide
 
-Send `Authorization: Bearer <token>` with each donation or claim request. Use `Content-Type: application/json` when sending a JSON body. The donation and claim handlers use JSON for response bodies. `204 No Content` has an empty body.
+Send `Authorization: Bearer <token>` with each request. Use `Content-Type: application/json` when sending a JSON body. Endpoints with response bodies return JSON; `204 No Content` has an empty body. See the [endpoint checklist](documentation/endpoint-checklist.md) for a quick method and role matrix, or import the [Postman collection](documentation/medremedy.postman_collection.json).
 
 | HTTP method | URL path | Role | Required JSON payload keys | Success status | Purpose |
 | --- | --- | --- | --- | --- | --- |
